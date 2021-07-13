@@ -15,7 +15,7 @@ from selfdrive.controls.lib.longcontrol import LongCtrlState
 from selfdrive.road_speed_limiter import road_speed_limiter_get_active
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
-min_set_speed = 0 * CV.KPH_TO_MS
+
 def accel_hysteresis(accel, accel_steady):
   # for small accel oscillations within ACCEL_HYST_GAP, don't change the accel command
   if accel > accel_steady + CarControllerParams.ACCEL_HYST_GAP:
@@ -98,11 +98,16 @@ class CarController():
     # disable if steer angle reach 90 deg, otherwise mdps fault in some models
     lkas_active = enabled and abs(CS.out.steeringAngleDeg) < CS.CP.maxSteeringAngleDeg
 
+    SMDPS = Params().get_bool('SmartMDPS')
+
     # fix for Genesis hard fault at low speed
-    #if CS.out.vEgo < 55 * CV.KPH_TO_MS and self.car_fingerprint == CAR.GENESIS:
-      #lkas_active = False
-
-
+    if SMDPS == True:
+      min_set_speed = 0 * CV.KPH_TO_MS
+    else:
+      min_set_speed = 30 * CV.KPH_TO_MS
+      if CS.out.vEgo < 55 * CV.KPH_TO_MS and self.car_fingerprint == CAR.GENESIS or self.car_fingerprint == CAR.GENESIS_G80 and not CS.mdps_bus:
+        lkas_active = False
+        
     # Disable steering while turning blinker on and speed below 60 kph
     if CS.out.leftBlinker or CS.out.rightBlinker:
       self.turning_signal_timer = 0.5 / DT_CTRL  # Disable for 0.5 Seconds after blinker turned off
@@ -190,9 +195,9 @@ class CarController():
         can_sends.append(create_clu11(self.packer, self.resume_cnt, CS.scc_bus, CS.clu11, Buttons.RES_ACCEL, clu11_speed))
         self.resume_cnt += 1
 
-        if self.resume_cnt >= 8:
+        if self.resume_cnt >= 4:
           self.resume_cnt = 0
-          self.resume_wait_timer = SccSmoother.get_wait_count() * 2
+          self.resume_wait_timer = SccSmoother.get_wait_count() * 1
 
     # reset lead distnce after the car starts moving
     elif self.last_lead_distance != 0:

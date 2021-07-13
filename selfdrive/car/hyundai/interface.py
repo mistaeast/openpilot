@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import numpy as np
-
+import os
+import shutil
+from os import path
 from cereal import car
 from selfdrive.config import Conversions as CV
 from selfdrive.car.hyundai.values import Ecu, ECU_FINGERPRINT, CAR, FINGERPRINTS, Buttons, FEATURES
@@ -58,7 +60,7 @@ class CarInterface(CarInterfaceBase):
     ret.lateralTuning.indi.actuatorEffectivenessV = [2.]
 
     ret.steerRatio = 16.5
-    ret.steerActuatorDelay = 0.1
+    ret.steerActuatorDelay = 0.0
     ret.steerLimitTimer = 2.5
     ret.steerRateCost = 0.4
     ret.steerMaxBP = [0.]
