@@ -76,11 +76,14 @@ PrimeUserWidget::PrimeUserWidget(QWidget* parent) : QWidget(parent) {
   mainLayout = new QVBoxLayout;
   mainLayout->setMargin(30);
 
-  QLabel* commaPrime = new QLabel("COMMA PRIME");
+  QLabel* commaPrime = new QLabel("RetroPilot Server");
   mainLayout->addWidget(commaPrime, 0, Qt::AlignTop);
 
   username = new QLabel();
-  username->setStyleSheet("font-size: 55px;"); // TODO: fit width
+  QLabel* RetroPilot = new QLabel("Donfyffe HKG");
+  mainLayout->addWidget(RetroPilot, 0, Qt::AlignTop);
+  username->setStyleSheet("font-size: 53px;"); // TODO: fit width
+
   mainLayout->addWidget(username, 0, Qt::AlignTop);
 
   mainLayout->addSpacing(100);
@@ -108,9 +111,9 @@ PrimeUserWidget::PrimeUserWidget(QWidget* parent) : QWidget(parent) {
     return;
   }
 
-  //QString url = "https://api.commadotai.com/v1/devices/" + dongleId + "/owner";
-  //RequestRepeater *repeater = new RequestRepeater(this, url, "ApiCache_Owner", 6);
-  //QObject::connect(repeater, &RequestRepeater::receivedResponse, this, &PrimeUserWidget::replyFinished);
+  QString url = "https://api.retropilot.org/v1/devices/" + dongleId + "/owner";
+  RequestRepeater *repeater = new RequestRepeater(this, url, "ApiCache_Owner", 6);
+  QObject::connect(repeater, &RequestRepeater::receivedResponse, this, &PrimeUserWidget::replyFinished);
 }
 
 void PrimeUserWidget::replyFinished(const QString &response) {
@@ -239,14 +242,13 @@ SetupWidget::SetupWidget(QWidget* parent) : QFrame(parent) {
   setSizePolicy(sp_retain);
 
   // set up API requests
-  /*QString dongleId = QString::fromStdString(Params().get("DongleId"));
-  QString url = "https://api.commadotai.com/v1.1/devices/" + dongleId + "/";
+  QString dongleId = QString::fromStdString(Params().get("DongleId"));
+  QString url = "https://api.retropilot.org/v1.1/devices/" + dongleId + "/";
   RequestRepeater* repeater = new RequestRepeater(this, url, "ApiCache_Device", 5);
 
   QObject::connect(repeater, &RequestRepeater::receivedResponse, this, &SetupWidget::replyFinished);
-  QObject::connect(repeater, &RequestRepeater::failedResponse, this, &SetupWidget::parseError);*/
-  //hide(); // Only show when first request comes back
-  parseError("");
+  QObject::connect(repeater, &RequestRepeater::failedResponse, this, &SetupWidget::parseError);
+  hide(); // Only show when first request comes back
 }
 
 void SetupWidget::parseError(const QString &response) {
