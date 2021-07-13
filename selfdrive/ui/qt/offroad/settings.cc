@@ -1,8 +1,15 @@
 #include "settings.h"
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #include <cassert>
 #include <string>
 
+#include <iostream>       // std::cout, std::endl
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
+ 
 #ifndef QCOM
 #include "selfdrive/ui/qt/offroad/networking.h"
 #endif
@@ -396,6 +403,13 @@ QWidget * community_panel() {
                                             "",
                                             "../assets/offroad/icon_road.png"
                                             ));
+  toggles_list->addWidget(horizontal_line());
+  toggles_list->addWidget(new ParamControl("Smart MDPS",
+                                            "Use Smart MDPS",
+                                            "",
+                                            "../assets/offroad/icon_settings.png"
+                                            ));
+  toggles_list->addWidget(horizontal_line());                                             
 
   QWidget *widget = new QWidget;
   widget->setLayout(toggles_list);
