@@ -391,6 +391,12 @@ QWidget * community_panel() {
                                             "../assets/offroad/icon_road.png"
                                             ));
   toggles_list->addWidget(horizontal_line());
+  toggles_list->addWidget(new ParamControl("SmartMDPS",
+                                            "Use Smart MDPS",
+                                            "",
+                                            "../assets/offroad/icon_settings.png"
+                                            ));
+  toggles_list->addWidget(horizontal_line());   
   toggles_list->addWidget(new ParamControl("ShowDebugUI",
                                             "Show Debug UI",
                                             "",
@@ -403,13 +409,7 @@ QWidget * community_panel() {
                                             "",
                                             "../assets/offroad/icon_road.png"
                                             ));
-  toggles_list->addWidget(horizontal_line());
-  toggles_list->addWidget(new ParamControl("Smart MDPS",
-                                            "Use Smart MDPS",
-                                            "",
-                                            "../assets/offroad/icon_settings.png"
-                                            ));
-  toggles_list->addWidget(horizontal_line());                                             
+  toggles_list->addWidget(horizontal_line());                                        
 
   QWidget *widget = new QWidget;
   widget->setLayout(toggles_list);
