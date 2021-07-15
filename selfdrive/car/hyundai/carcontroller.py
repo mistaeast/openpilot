@@ -127,7 +127,7 @@ class CarController():
                         left_lane, right_lane, left_lane_depart, right_lane_depart)
 
     clu11_speed = CS.clu11["CF_Clu_Vanz"]
-    enabled_speed = 38 if CS.is_set_speed_in_mph else 60
+    enabled_speed = 35 if CS.is_set_speed_in_mph else 55
     if clu11_speed > enabled_speed or not lkas_active:
       enabled_speed = clu11_speed
 
@@ -195,9 +195,9 @@ class CarController():
         can_sends.append(create_clu11(self.packer, self.resume_cnt, CS.scc_bus, CS.clu11, Buttons.RES_ACCEL, clu11_speed))
         self.resume_cnt += 1
 
-        if self.resume_cnt >= 4:
+        if self.resume_cnt >= 8:
           self.resume_cnt = 0
-          self.resume_wait_timer = SccSmoother.get_wait_count() * 1
+          self.resume_wait_timer = SccSmoother.get_wait_count() * 2
 
     # reset lead distnce after the car starts moving
     elif self.last_lead_distance != 0:
