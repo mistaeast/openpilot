@@ -54,10 +54,12 @@
 #define COLOR_YELLOW nvgRGBA(218, 202, 37, 255)
 #define COLOR_RED nvgRGBA(201, 34, 49, 255)
 
+typedef cereal::CarControl::HUDControl::AudibleAlert AudibleAlert;
+
 // TODO: this is also hardcoded in common/transformations/camera.py
 // TODO: choose based on frame input size
 const float y_offset = Hardware::TICI() ? 150.0 : 0.0;
-const float zoom = Hardware::TICI() ? 2912.8 : 2138.5;
+const float ZOOM = Hardware::TICI() ? 2912.8 : 2138.5;
 
 typedef struct Rect {
   int x, y, w, h;
@@ -69,6 +71,26 @@ typedef struct Rect {
     return px >= x && px < (x + w) && py >= y && py < (y + h);
   }
 } Rect;
+
+typedef struct Alert {
+  QString text1;
+  QString text2;
+  QString type;
+  cereal::ControlsState::AlertSize size;
+  AudibleAlert sound;
+  bool equal(Alert a2) {
+    return text1 == a2.text1 && text2 == a2.text2 && type == a2.type;
+  }
+} Alert;
+
+const Alert CONTROLS_WAITING_ALERT = {"openpilot Unavailable", "Waiting for controls to start",
+                                      "controlsWaiting", cereal::ControlsState::AlertSize::MID,
+                                      AudibleAlert::NONE};
+
+const Alert CONTROLS_UNRESPONSIVE_ALERT = {"TAKE CONTROL IMMEDIATELY", "Controls Unresponsive",
+                                           "controlsUnresponsive", cereal::ControlsState::AlertSize::FULL,
+                                           AudibleAlert::CHIME_WARNING_REPEAT};
+const int CONTROLS_TIMEOUT = 5;
 
 const int bdr_s = 20;
 const int header_h = 420;
@@ -106,10 +128,6 @@ typedef struct UIScene {
 
   cereal::PandaState::PandaType pandaType;
 
-  // gps
-  int satelliteCount;
-  float gpsAccuracy;
-
   // modelV2
   float lane_line_probs[4];
   float road_edge_stds[2];
@@ -125,13 +143,14 @@ typedef struct UIScene {
   float light_sensor, accel_sensor, gyro_sensor;
   bool started, ignition, is_metric, longitudinal_control, end_to_end;
   uint64_t started_frame;
-  
+
   // neokii dev UI
   cereal::CarControl::Reader car_control;
   cereal::CarParams::Reader car_params;
   cereal::GpsLocationData::Reader gps_ext;
   cereal::LiveParametersData::Reader live_params;
-  
+  int satelliteCount;
+
 } UIScene;
 
 typedef struct UIState {
@@ -166,7 +185,6 @@ typedef struct UIState {
   Rect video_rect, viz_rect;
   float car_space_transform[6];
   bool wide_camera;
-  float zoom;
 
   //
   bool show_debug_ui, custom_lead_mark;

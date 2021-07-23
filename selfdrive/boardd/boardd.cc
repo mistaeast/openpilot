@@ -386,7 +386,7 @@ void panda_state_thread(bool spoofing_started) {
 
     size_t i = 0;
     for (size_t f = size_t(cereal::PandaState::FaultType::RELAY_MALFUNCTION);
-        f <= size_t(cereal::PandaState::FaultType::INTERRUPT_RATE_TIM9); f++) {
+        f <= size_t(cereal::PandaState::FaultType::INTERRUPT_RATE_TICK); f++) {
       if (fault_bits.test(f)) {
         faults.set(i, cereal::PandaState::FaultType(f));
         i++;
@@ -408,6 +408,8 @@ void hardware_control_thread() {
   uint16_t prev_ir_pwr = 999;
   bool prev_charging_disabled = false;
   unsigned int cnt = 0;
+
+  FirstOrderFilter integ_lines_filter(0, 30.0, 0.05);
 
   while (!do_exit && panda->connected) {
     cnt++;
@@ -441,6 +443,10 @@ void hardware_control_thread() {
     if (sm.updated("driverCameraState")) {
       auto event = sm["driverCameraState"];
       int cur_integ_lines = event.getDriverCameraState().getIntegLines();
+
+      if (Hardware::TICI()) {
+        cur_integ_lines = integ_lines_filter.update(cur_integ_lines * 2.5);
+      }
       last_front_frame_t = event.getLogMonoTime();
 
       if (cur_integ_lines <= CUTOFF_IL) {
@@ -473,6 +479,12 @@ static void pigeon_publish_raw(PubMaster &pm, const std::string &dat) {
 }
 
 void pigeon_thread() {
+
+  printf("panda->is_pigeon: %s !!!!!\n", panda->is_pigeon ? "true" : "false");
+  if(!panda->is_pigeon) {
+    puts("pigeon_thread canceled !!!!!");
+    return;
+  }
 
   puts("pigeon_thread start !!!!!");
 
@@ -571,11 +583,7 @@ int main() {
       threads.push_back(std::thread(can_send_thread, getenv("FAKESEND") != nullptr));
       threads.push_back(std::thread(can_recv_thread));
       threads.push_back(std::thread(hardware_control_thread));
-
-	  printf("panda->is_pigeon: %d !!!!!\n", (int)(panda->is_pigeon));
-
-	  if(panda->is_pigeon)
-	      threads.push_back(std::thread(pigeon_thread));
+      threads.push_back(std::thread(pigeon_thread));
     }
 
     for (auto &t : threads) t.join();

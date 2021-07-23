@@ -359,6 +359,11 @@ class SccSmoother:
     gas_factor = clip(self.gas_factor, 0.7, 1.3)
     brake_factor = clip(self.brake_factor, 0.7, 1.3)
 
+    lead = self.get_lead(sm)
+    if lead is not None:
+      wd = interp(lead.dRel, [4., 15.], [1.2, 1.0])
+      brake_factor *= interp(CS.out.vEgo, [0., 20.], [1., wd])
+
     if accel > 0:
       accel *= gas_factor
     else:
@@ -370,7 +375,7 @@ class SccSmoother:
   def update_cruise_buttons(controls, CS, longcontrol):  # called by controlds's state_transition
 
     car_set_speed = CS.cruiseState.speed * CV.MS_TO_KPH
-    is_cruise_enabled = car_set_speed != 0 and car_set_speed != 255 and CS.cruiseState.enabled and controls.CP.enableCruise
+    is_cruise_enabled = car_set_speed != 0 and car_set_speed != 255 and CS.cruiseState.enabled and controls.CP.pcmCruise
 
     if is_cruise_enabled:
       if longcontrol:
