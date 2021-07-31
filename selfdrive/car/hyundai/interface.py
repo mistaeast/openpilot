@@ -67,24 +67,26 @@ class CarInterface(CarInterfaceBase):
     ret.steerMaxV = [1.5]
 
     # longitudinal
-    ret.longitudinalTuning.kpBP = [0, 10.*CV.KPH_TO_MS, 20.*CV.KPH_TO_MS, 40.*CV.KPH_TO_MS, 70.*CV.KPH_TO_MS, 100.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
-    ret.longitudinalTuning.kpV = [1.2, 1.04, 0.9, 0.75, 0.6, 0.5, 0.4]
-    ret.longitudinalTuning.kiBP = [0, 130. * CV.KPH_TO_MS]
-    ret.longitudinalTuning.kiV = [0.03, 0.02]
-    ret.longitudinalTuning.kfBP = [10.*CV.KPH_TO_MS, 30.*CV.KPH_TO_MS, 50.*CV.KPH_TO_MS, 80.*CV.KPH_TO_MS, 100.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
-    ret.longitudinalTuning.kfV = [1.0, 0.92, 0.86, 0.79, 0.76, 0.72]
-    ret.longitudinalTuning.deadzoneBP = [0., 100.*CV.KPH_TO_MS]
-    ret.longitudinalTuning.deadzoneV = [0., 0.015]
+    ret.longitudinalTuning.kpBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kpV = [1.2, 0.9, 0.7, 0.6, 0.5, 0.4]
+    ret.longitudinalTuning.kiBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kiV = [0.33, 0.22, 0.21, 0.17, 0.15, 0.13]
+    ret.longitudinalTuning.deadzoneBP = [0., 4., 31.]
+    ret.longitudinalTuning.deadzoneV = [0., 0.1, 0.1]
+    ret.longitudinalTuning.kdBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kdV = [0.7, 0.65, 0.5, 0.4, 0.3, 0.2]
+    ret.longitudinalTuning.kfBP = [0., 4., 9., 17., 23., 31.]
+    ret.longitudinalTuning.kfV = [1., 1., 1., 1., 1., 1.]
 
-    ret.gasMaxBP = [0., 10.*CV.KPH_TO_MS, 20.*CV.KPH_TO_MS, 50.*CV.KPH_TO_MS, 70.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
-    ret.gasMaxV = [0.57, 0.4, 0.32, 0.24, 0.17, 0.13]
+    ret.gasMaxBP = [0., 4., 9., 17., 23., 31.]    # m/s
+    ret.gasMaxV = [1.5, 1.35, 0.8, 0.5, 0.4, 0.3]    # max gas allowed
 
-    ret.brakeMaxBP = [0, 70.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
-    ret.brakeMaxV = [1.5, 1.0, 0.7]
+    ret.brakeMaxBP = [0., 8.]  # m/s
+    ret.brakeMaxV = [0.7, 3.0]   # max brake allowed
 
     ret.stoppingBrakeRate = 0.2  # brake_travel/s while trying to stop
     ret.startingBrakeRate = 1.0  # brake_travel/s while releasing on restart
-    ret.startAccel = 1.5
+    ret.startAccel = 0.2
 
     # genesis
     if candidate == CAR.GENESIS:
