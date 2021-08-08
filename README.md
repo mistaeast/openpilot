@@ -1,6 +1,6 @@
 SEE https://github.com/Circuit-Pro/openpilot/commit/dfd52f321fdd68712ea87297ea5c594645a949bb for updates.
 
-Johnpr is doing some good work with xx070xx neokii fork. please show him some love.
+Johnpr is doing some good work with xx979xx neokii fork. please show him some love.
 
 **This is based on xx979xx for Hyundai, Kia, Genesis.**
 
