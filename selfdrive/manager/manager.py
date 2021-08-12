@@ -49,9 +49,10 @@ def manager_init():
     ("SccSmootherSlowOnCurves", "1"),
     ("SccSmootherSyncGasPressed", "1"),
     ("FuseWithStockScc", "1"),
+    ("SmartMDPS", "0"),
     ("ShowDebugUI", "0"),
-    ("CustomLeadMark", "0"),
-    ("SmartMDPS", "0")
+    ("CustomLeadMark", "0")
+    
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
