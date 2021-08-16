@@ -1,8 +1,11 @@
 #include "selfdrive/ui/qt/offroad/settings.h"
-
+#include <stdlib.h>
+#include <stdio.h>
 #include <cassert>
 #include <string>
-
+#include <iostream>       // std::cout, std::endl
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
 #include <QDebug>
 
 #ifndef QCOM
