@@ -401,6 +401,12 @@ QWidget * community_panel() {
                                             "../assets/offroad/icon_openpilot.png"
                                               ));
   toggles_list->addWidget(horizontal_line());
+  toggles_list->addWidget(new ParamControl("Smart MDPS",
+                                            "Use Smart MDPS",
+                                            "On for car with smart mdps harness for down to 0 mph openpilot steering",
+                                            "../assets/offroad/icon_road.png"
+                                            ));  
+  toggles_list->addWidget(horizontal_line());
   toggles_list->addWidget(new ParamControl("IsLdwsCar",
                                             "LDWS",
                                             "If your car only supports LDWS, turn it on.",
