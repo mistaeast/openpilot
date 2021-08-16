@@ -38,7 +38,7 @@ def manager_init():
 
     ("OpenpilotEnabledToggle", "1"),
     ("CommunityFeaturesToggle", "1"),
-    ("IsMetric", "1"),
+    ("IsMetric", "0"),
 
     # HKG
     ("UseClusterSpeed", "1"),
