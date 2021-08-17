@@ -134,10 +134,6 @@ static void update_model(UIState *s, const cereal::ModelDataV2::Reader &model) {
 static void update_sockets(UIState *s) {
   s->sm->update(0);
 }
-if (sm.updated("carState")) {
-  auto event = sm["carState"];
-  scene.car_state = event.getCarState();
-}  
 
 static void update_state(UIState *s) {
   SubMaster &sm = *(s->sm);
