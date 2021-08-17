@@ -146,6 +146,7 @@ typedef struct UIScene {
   uint64_t started_frame;
 
   // neokii dev UI
+  cereal::CarState::Reader car_state; 
   cereal::CarControl::Reader car_control;
   cereal::CarParams::Reader car_params;
   cereal::GpsLocationData::Reader gps_ext;
