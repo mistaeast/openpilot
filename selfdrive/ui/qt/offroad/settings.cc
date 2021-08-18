@@ -442,8 +442,8 @@ QWidget * community_panel() {
   toggles_list->addWidget(horizontal_line());  
   toggles_list->addWidget(new ParamControl("SmartMDPS",
                                             "Use Smart MDPS",
-                                            "On for car with smart mdps harness for down to 0 mph openpilot steering",
-                                            "../assets/offroad/icon_settings.png"
+                                            "Turn On for car with smart mdps harness for down to 0 mph openpilot steering",
+                                            "../assets/offroad/icon_road.png"
                                             ));
   toggles_list->addWidget(horizontal_line());
   toggles_list->addWidget(new ParamControl("ShowDebugUI",
