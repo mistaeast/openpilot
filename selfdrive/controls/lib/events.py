@@ -647,7 +647,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
 
   EventName.wrongGear: {
     ET.SOFT_DISABLE: SoftDisableAlert("Gear not D"),
-    ET.NO_ENTRY: NoEntryAlert("Gear not D"),
+    ET.NO_ENTRY: NoEntryAlert("Openpilot can only be enabled in Drive gear"),
   },
 
   # This alert is thrown when the calibration angles are outside of the acceptable range.
@@ -890,7 +890,7 @@ EVENTS: Dict[int, Dict[str, Union[Alert, Callable[[Any, messaging.SubMaster, boo
   
   EventName.turningIndicatorOn: {
     ET.WARNING: Alert(
-      "Low speed turning,",
+      "Manual steering is required at this speed",
       "Manual steering is required",
       AlertStatus.userPrompt, AlertSize.small,
       Priority.LOW, VisualAlert.none, AudibleAlert.none, .0, .0, .2),
