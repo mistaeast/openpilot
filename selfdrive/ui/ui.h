@@ -17,7 +17,6 @@
 
 #define UI_FEATURE_RIGHT_CPU_TEMP 1
 #define UI_FEATURE_RIGHT_AMBIENT_TEMP 1
-#define UI_FEATURE_RIGHT_BATTERY_LEVEL 1
 #define UI_FEATURE_RIGHT_GPS_ALTITUDE 1
 #define UI_FEATURE_RIGHT_GPS_ACCURACY 1
 #define UI_FEATURE_RIGHT_GPS_SATELLITE 1
@@ -127,7 +126,7 @@ typedef struct UIScene {
   bool world_objects_visible;
 
   cereal::PandaState::PandaType pandaType;
-
+  cereal::CarState::Reader car_state;
   // modelV2
   float lane_line_probs[4];
   float road_edge_stds[2];
@@ -146,7 +145,6 @@ typedef struct UIScene {
   uint64_t started_frame;
 
   // neokii dev UI
-  cereal::CarState::Reader car_state; 
   cereal::CarControl::Reader car_control;
   cereal::CarParams::Reader car_params;
   cereal::GpsLocationData::Reader gps_ext;
