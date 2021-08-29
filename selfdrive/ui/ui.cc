@@ -138,7 +138,11 @@ static void update_sockets(UIState *s) {
 static void update_state(UIState *s) {
   SubMaster &sm = *(s->sm);
   UIScene &scene = s->scene;
-
+	
+  if (sm.updated("carState")) {
+    auto event = sm["carState"];
+    scene.car_state = event.getCarState();
+  }
   // update engageability and DM icons at 2Hz
   if (sm.frame % (UI_FREQ / 2) == 0) {
     scene.engageable = sm["controlsState"].getControlsState().getEngageable();
