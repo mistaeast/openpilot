@@ -8,7 +8,7 @@
 #define UI_FEATURE_RIGHT 1
 
 #define UI_FEATURE_LEFT_Y 220
-#define UI_FEATURE_RIGHT_Y 20
+#define UI_FEATURE_RIGHT_Y 10
 
 #define UI_FEATURE_LEFT_REL_DIST 1
 #define UI_FEATURE_LEFT_REL_SPEED 1
@@ -17,7 +17,6 @@
 
 #define UI_FEATURE_RIGHT_CPU_TEMP 1
 #define UI_FEATURE_RIGHT_AMBIENT_TEMP 1
-#define UI_FEATURE_RIGHT_BATTERY_LEVEL 1
 #define UI_FEATURE_RIGHT_GPS_ALTITUDE 1
 #define UI_FEATURE_RIGHT_GPS_ACCURACY 1
 #define UI_FEATURE_RIGHT_GPS_SATELLITE 1
@@ -78,7 +77,7 @@ typedef struct Alert {
   QString type;
   cereal::ControlsState::AlertSize size;
   AudibleAlert sound;
-  bool equal(Alert a2) {
+  bool equal(const Alert &a2) {
     return text1 == a2.text1 && text2 == a2.text2 && type == a2.type;
   }
 } Alert;
@@ -127,7 +126,7 @@ typedef struct UIScene {
   bool world_objects_visible;
 
   cereal::PandaState::PandaType pandaType;
-
+  cereal::CarState::Reader car_state;
   // modelV2
   float lane_line_probs[4];
   float road_edge_stds[2];
@@ -138,6 +137,7 @@ typedef struct UIScene {
   bool dm_active, engageable;
 
   // lead
+  vertex_data lead_vertices_radar[2];
   vertex_data lead_vertices[2];
 
   float light_sensor, accel_sensor, gyro_sensor;
@@ -182,7 +182,6 @@ typedef struct UIState {
 
   bool awake;
 
-  Rect video_rect, viz_rect;
   float car_space_transform[6];
   bool wide_camera;
 

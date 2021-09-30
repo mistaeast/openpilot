@@ -1,9 +1,13 @@
 from common.numpy_fast import interp, clip, mean
 import numpy as np
+from cereal import log
+from common.filter_simple import FirstOrderFilter
+from common.numpy_fast import interp
+from common.realtime import DT_MDL
 from selfdrive.hardware import EON, TICI
 from selfdrive.swaglog import cloudlog
 from cereal import log
-from selfdrive.ntune import ntune_get
+from selfdrive.ntune import ntune_common_get
 
 ENABLE_ZORROBYTE = True
 ENABLE_INC_LANE_PROB = True
@@ -26,9 +30,9 @@ class LanePlanner:
     self.ll_x = np.zeros((TRAJECTORY_SIZE,))
     self.lll_y = np.zeros((TRAJECTORY_SIZE,))
     self.rll_y = np.zeros((TRAJECTORY_SIZE,))
-    self.lane_width_estimate = 3.5
-    self.lane_width_certainty = 1.0
-    self.lane_width = 3.5
+    self.lane_width_estimate = FirstOrderFilter(3.7, 9.95, DT_MDL)
+    self.lane_width_certainty = FirstOrderFilter(1.0, 0.95, DT_MDL)
+    self.lane_width = 3.7
 
     self.lll_prob = 0.
     self.rll_prob = 0.
@@ -46,6 +50,7 @@ class LanePlanner:
     self.readings = []
     self.frame = 0
 
+    self.wide_camera = wide_camera
 
   def parse_model(self, md):
     if len(md.laneLines) == 4 and len(md.laneLines[0].t) == TRAJECTORY_SIZE:
@@ -53,7 +58,8 @@ class LanePlanner:
       # left and right ll x is the same
       self.ll_x = md.laneLines[1].x
       # only offset left and right lane lines; offsetting path does not make sense
-      cameraOffset = ntune_get("cameraOffset")
+
+      cameraOffset = ntune_common_get("cameraOffset") + 0.08 if self.wide_camera else ntune_common_get("cameraOffset")
       self.lll_y = np.array(md.laneLines[1].y) - cameraOffset
       self.rll_y = np.array(md.laneLines[2].y) - cameraOffset
       self.lll_prob = md.laneLineProbs[1]
@@ -68,7 +74,7 @@ class LanePlanner:
   def get_d_path(self, v_ego, path_t, path_xyz):
     # Reduce reliance on lanelines that are too far apart or
     # will be in a few seconds
-    path_xyz[:, 1] -= self.path_offset
+    #path_xyz[:, 1] -= self.path_offset
     l_prob, r_prob = self.lll_prob, self.rll_prob
     width_pts = self.rll_y - self.lll_y
     prob_mods = []
@@ -101,14 +107,15 @@ class LanePlanner:
       # Don't exit dive
       if abs(self.rll_y[0] - self.lll_y[0]) > self.lane_width:
         r_prob = r_prob / interp(l_prob, [0, 1], [1, 3])
+
     else:
       # Find current lanewidth
-      self.lane_width_certainty += 0.05 * (l_prob * r_prob - self.lane_width_certainty)
+      self.lane_width_certainty.update(l_prob * r_prob)
       current_lane_width = abs(self.rll_y[0] - self.lll_y[0])
-      self.lane_width_estimate += 0.005 * (current_lane_width - self.lane_width_estimate)
+      self.lane_width_estimate.update(current_lane_width)
       speed_lane_width = interp(v_ego, [0., 31.], [2.8, 3.5])
-      self.lane_width = self.lane_width_certainty * self.lane_width_estimate + \
-                        (1 - self.lane_width_certainty) * speed_lane_width
+      self.lane_width = self.lane_width_certainty.x * self.lane_width_estimate.x + \
+                        (1 - self.lane_width_certainty.x) * speed_lane_width
 
     clipped_lane_width = min(4.0, self.lane_width)
     path_from_left_lane = self.lll_y + clipped_lane_width / 2.0
@@ -118,7 +125,7 @@ class LanePlanner:
 
     # neokii
     if ENABLE_INC_LANE_PROB and self.d_prob > 0.65:
-      self.d_prob = min(self.d_prob * 1.35, 1.0)
+      self.d_prob = min(self.d_prob * 1.3, 1.0)
 
     lane_path_y = (l_prob * path_from_left_lane + r_prob * path_from_right_lane) / (l_prob + r_prob + 0.0001)
     safe_idxs = np.isfinite(self.ll_t)

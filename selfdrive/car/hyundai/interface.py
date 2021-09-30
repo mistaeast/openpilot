@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import numpy as np
-
+import os
+import shutil
+from os import path
 from cereal import car
 from selfdrive.config import Conversions as CV
 from selfdrive.car.hyundai.values import Ecu, ECU_FINGERPRINT, CAR, FINGERPRINTS, Buttons, FEATURES
@@ -47,17 +49,15 @@ class CarInterface(CarInterfaceBase):
     ret.maxSteeringAngleDeg = 90.
 
     # lateral
-    ret.lateralTuning.init('lqr')
-
-    ret.lateralTuning.lqr.scale = 1700.
-    ret.lateralTuning.lqr.ki = 0.01
-    ret.lateralTuning.lqr.dcGain = 0.0028
-
-    ret.lateralTuning.lqr.a = [0., 1., -0.22619643, 1.21822268]
-    ret.lateralTuning.lqr.b = [-1.92006585e-04, 3.95603032e-05]
-    ret.lateralTuning.lqr.c = [1., 0.]
-    ret.lateralTuning.lqr.k = [-110., 451.]
-    ret.lateralTuning.lqr.l = [0.33, 0.318]
+    ret.lateralTuning.init('indi')
+    ret.lateralTuning.indi.innerLoopGainBP = [0.]
+    ret.lateralTuning.indi.innerLoopGainV = [3.1]
+    ret.lateralTuning.indi.outerLoopGainBP = [0.]
+    ret.lateralTuning.indi.outerLoopGainV = [2.5]
+    ret.lateralTuning.indi.timeConstantBP = [0.]
+    ret.lateralTuning.indi.timeConstantV = [1.4]
+    ret.lateralTuning.indi.actuatorEffectivenessBP = [0.]
+    ret.lateralTuning.indi.actuatorEffectivenessV = [2.]
 
     ret.steerRatio = 16.5
     ret.steerActuatorDelay = 0.1
@@ -67,24 +67,24 @@ class CarInterface(CarInterfaceBase):
     ret.steerMaxV = [1.5]
 
     # longitudinal
-    ret.longitudinalTuning.kpBP = [0, 10.*CV.KPH_TO_MS, 20.*CV.KPH_TO_MS, 40.*CV.KPH_TO_MS, 70.*CV.KPH_TO_MS, 100.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
-    ret.longitudinalTuning.kpV = [1.23, 0.97, 0.83, 0.68, 0.57, 0.48, 0.38]
-    ret.longitudinalTuning.kiBP = [0, 130.*CV.KPH_TO_MS]
-    ret.longitudinalTuning.kiV = [0.03, 0.02]
-    ret.longitudinalTuning.kfBP = [10.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
-    ret.longitudinalTuning.kfV = [1.15, 0.8]
+    ret.longitudinalTuning.kpBP = [0., 10.*CV.KPH_TO_MS, 20.*CV.KPH_TO_MS, 40.*CV.KPH_TO_MS, 70.*CV.KPH_TO_MS, 100.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
+    ret.longitudinalTuning.kpV = [1.2, 0.98, 0.83, 0.75, 0.655, 0.57, 0.48]
+    ret.longitudinalTuning.kiBP = [0., 130. * CV.KPH_TO_MS]
+    ret.longitudinalTuning.kiV = [0.05, 0.03]
+    ret.longitudinalTuning.kfBP = [0.]
+    ret.longitudinalTuning.kfV = [1.0]
     ret.longitudinalTuning.deadzoneBP = [0., 100.*CV.KPH_TO_MS]
     ret.longitudinalTuning.deadzoneV = [0., 0.015]
 
     ret.gasMaxBP = [0., 10.*CV.KPH_TO_MS, 20.*CV.KPH_TO_MS, 50.*CV.KPH_TO_MS, 70.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
-    ret.gasMaxV = [0.6, 0.41, 0.32, 0.24, 0.17, 0.13]
+    ret.gasMaxV = [0.57, 0.4, 0.32, 0.24, 0.17, 0.13]
 
     ret.brakeMaxBP = [0, 70.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
-    ret.brakeMaxV = [1.5, 1.3, 0.8]
+    ret.brakeMaxV = [1.5, 1.0, 0.7]
 
-    ret.stoppingBrakeRate = 0.2  # brake_travel/s while trying to stop
+    ret.stoppingBrakeRate = 0.15  # brake_travel/s while trying to stop
     ret.startingBrakeRate = 1.0  # brake_travel/s while releasing on restart
-    ret.startAccel = 1.3
+    ret.startAccel = 1.5
 
     # genesis
     if candidate == CAR.GENESIS:
@@ -116,7 +116,7 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 1694 + STD_CARGO_KG
       ret.wheelbase = 2.766
       ret.centerToFront = ret.wheelbase * 0.4
-    elif candidate in [CAR.SONATA, CAR.SONATA_HEV]:
+    elif candidate in [CAR.SONATA, CAR.SONATA_HEV, CAR.SONATA21_HEV]:
       ret.mass = 1513. + STD_CARGO_KG
       ret.wheelbase = 2.84
       ret.centerToFront = ret.wheelbase * 0.4
@@ -146,11 +146,13 @@ class CarInterface(CarInterfaceBase):
       ret.wheelbase = 2.72
       ret.steerRatio = 13.27 * 1.15   # 15% higher at the center seems reasonable
       tire_stiffness_factor = 0.65
+      ret.centerToFront = ret.wheelbase * 0.4
     elif candidate == CAR.ELANTRA_HEV_2021:
       ret.mass = (3017. * CV.LB_TO_KG) + STD_CARGO_KG
       ret.wheelbase = 2.72
       ret.steerRatio = 13.27 * 1.15  # 15% higher at the center seems reasonable
       tire_stiffness_factor = 0.65
+      ret.centerToFront = ret.wheelbase * 0.4
     elif candidate == CAR.KONA:
       ret.mass = 1275. + STD_CARGO_KG
       ret.wheelbase = 2.7
@@ -167,6 +169,7 @@ class CarInterface(CarInterfaceBase):
       tire_stiffness_factor = 0.385
       #if candidate not in [CAR.IONIQ_EV_2020, CAR.IONIQ_PHEV]:
       #  ret.minSteerSpeed = 32 * CV.MPH_TO_MS
+      ret.centerToFront = ret.wheelbase * 0.4
     elif candidate in [CAR.GRANDEUR_IG, CAR.GRANDEUR_IG_HEV]:
       tire_stiffness_factor = 0.8
       ret.mass = 1640. + STD_CARGO_KG
@@ -222,7 +225,7 @@ class CarInterface(CarInterfaceBase):
       ret.wheelbase = 2.78
       tire_stiffness_factor = 0.7
       ret.centerToFront = ret.wheelbase * 0.4
-    elif candidate in [CAR.NIRO_HEV, CAR.NIRO_EV]:
+    elif candidate in [CAR.NIRO_EV, CAR.NIRO_HEV, CAR.NIRO21_HEV]:
       ret.mass = 1737. + STD_CARGO_KG
       ret.wheelbase = 2.7
       tire_stiffness_factor = 0.7
@@ -244,6 +247,9 @@ class CarInterface(CarInterfaceBase):
       tire_stiffness_factor = 0.8
 
     ret.radarTimeStep = 0.05
+
+    if ret.centerToFront == 0:
+      ret.centerToFront = ret.wheelbase * 0.4
 
 
     # TODO: get actual value, for now starting with reasonable value for

@@ -3,12 +3,14 @@ import random
 import numpy as np
 from common.numpy_fast import clip, interp, mean
 from cereal import car
+from common.realtime import DT_CTRL
 from selfdrive.config import Conversions as CV
 from selfdrive.car.hyundai.values import Buttons
 from common.params import Params
 from selfdrive.controls.lib.drive_helpers import V_CRUISE_MAX, V_CRUISE_MIN, V_CRUISE_DELTA_KM, V_CRUISE_DELTA_MI
 from selfdrive.controls.lib.lane_planner import TRAJECTORY_SIZE
 from selfdrive.controls.lib.lead_mpc import AUTO_TR_CRUISE_GAP
+from selfdrive.ntune import ntune_scc_get
 from selfdrive.road_speed_limiter import road_speed_limiter_get_max_speed, road_speed_limiter_get_active
 
 SYNC_MARGIN = 3.
@@ -54,23 +56,18 @@ class SccSmoother:
   def kph_to_clu(self, kph):
     return int(kph * CV.KPH_TO_MS * self.speed_conv_to_clu)
 
-  def __init__(self, gas_factor, brake_factor, curvature_factor):
+  def __init__(self):
 
     self.longcontrol = Params().get_bool('LongControlEnabled')
     self.slow_on_curves = Params().get_bool('SccSmootherSlowOnCurves')
     self.sync_set_speed_while_gas_pressed = Params().get_bool('SccSmootherSyncGasPressed')
     self.is_metric = Params().get_bool('IsMetric')
-    self.fuse_with_stock = Params().get_bool('FuseWithStockScc')
 
     self.speed_conv_to_ms = CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS
     self.speed_conv_to_clu = CV.MS_TO_KPH if self.is_metric else CV.MS_TO_MPH
 
     self.min_set_speed_clu = self.kph_to_clu(MIN_SET_SPEED_KPH)
     self.max_set_speed_clu = self.kph_to_clu(MAX_SET_SPEED_KPH)
-
-    self.gas_factor = clip(gas_factor, 0.7, 1.3)
-    self.brake_factor = clip(brake_factor, 0.7, 1.3)
-    self.curvature_factor = curvature_factor
 
     self.target_speed = 0.
 
@@ -85,13 +82,13 @@ class SccSmoother:
     self.slowing_down = False
     self.slowing_down_alert = False
     self.slowing_down_sound_alert = False
+    self.active_cam = False
 
     self.max_speed_clu = 0.
     self.limited_lead = False
 
     self.curve_speed_ms = 0.
-
-    self.fused_decel = []
+    self.stock_weight = 0.
 
   def reset(self):
 
@@ -102,8 +99,6 @@ class SccSmoother:
 
     self.max_speed_clu = 0.
     self.curve_speed_ms = 0.
-
-    self.fused_decel.clear()
 
     self.slowing_down = False
     self.slowing_down_alert = False
@@ -129,7 +124,8 @@ class SccSmoother:
   def cal_max_speed(self, frame, CC, CS, sm, clu11_speed, controls):
 
     # kph
-    limit_speed, road_limit_speed, left_dist, first_started, max_speed_log = road_speed_limiter_get_max_speed(CS, controls.v_cruise_kph)
+    apply_limit_speed, road_limit_speed, left_dist, first_started, max_speed_log = \
+      road_speed_limiter_get_max_speed(clu11_speed, self.is_metric)
 
     self.cal_curve_speed(sm, CS.out.vEgo, frame)
     if self.slow_on_curves and self.curve_speed_ms >= MIN_CURVE_SPEED:
@@ -137,20 +133,22 @@ class SccSmoother:
     else:
       max_speed_clu = self.kph_to_clu(controls.v_cruise_kph)
 
+    self.active_cam = road_limit_speed > 0
+
     #max_speed_log = "{:.1f}/{:.1f}/{:.1f}".format(float(limit_speed),
     #                                              float(self.curve_speed_ms*self.speed_conv_to_clu),
     #                                              float(lead_speed))
 
     max_speed_log = ""
 
-    if limit_speed >= self.kph_to_clu(30):
+    if apply_limit_speed >= self.kph_to_clu(30):
 
       if first_started:
         self.max_speed_clu = clu11_speed
 
-      max_speed_clu = min(max_speed_clu, limit_speed)
+      max_speed_clu = min(max_speed_clu, apply_limit_speed)
 
-      if clu11_speed > limit_speed:
+      if clu11_speed > apply_limit_speed:
 
         if not self.slowing_down_alert and not self.slowing_down:
           self.slowing_down_sound_alert = True
@@ -193,11 +191,11 @@ class SccSmoother:
     CC.sccSmoother.roadLimitSpeedLeftDist = left_dist
 
     # kph
-    controls.cruiseVirtualMaxSpeed = float(clip(CS.cruiseState_speed * CV.MS_TO_KPH, MIN_SET_SPEED_KPH,
+    controls.applyMaxSpeed = float(clip(CS.cruiseState_speed * CV.MS_TO_KPH, MIN_SET_SPEED_KPH,
                                                 self.max_speed_clu * self.speed_conv_to_ms * CV.MS_TO_KPH))
     CC.sccSmoother.longControl = self.longcontrol
-    CC.sccSmoother.cruiseVirtualMaxSpeed = controls.cruiseVirtualMaxSpeed
-    CC.sccSmoother.cruiseRealMaxSpeed = controls.v_cruise_kph
+    CC.sccSmoother.applyMaxSpeed = controls.applyMaxSpeed
+    CC.sccSmoother.cruiseMaxSpeed = controls.v_cruise_kph
 
     CC.sccSmoother.autoTrGap = AUTO_TR_CRUISE_GAP
 
@@ -298,7 +296,7 @@ class SccSmoother:
         curv = curv[start:min(start+10, TRAJECTORY_SIZE)]
         a_y_max = 2.975 - v_ego * 0.0375  # ~1.85 @ 75mph, ~2.6 @ 25mph
         v_curvature = np.sqrt(a_y_max / np.clip(np.abs(curv), 1e-4, None))
-        model_speed = np.mean(v_curvature) * 0.9 * self.curvature_factor
+        model_speed = np.mean(v_curvature) * 0.85 * ntune_scc_get("sccCurvatureFactor")
 
         if model_speed < v_ego:
           self.curve_speed_ms = float(max(model_speed, MIN_CURVE_SPEED))
@@ -338,31 +336,15 @@ class SccSmoother:
       error = max_speed - self.max_speed_clu
       self.max_speed_clu = self.max_speed_clu + error * kp
 
-  def get_fused_accel(self, apply_accel, stock_accel, sm):
-
-    dRel = 0.
-    lead = self.get_lead(sm)
-    if lead is not None:
-      dRel = lead.dRel
-
-      if self.fuse_with_stock and lead.radar:
-        if stock_accel > 0.:
-          stock_weight = interp(dRel, [4., 25.], [0.7, 0.])
-        else:
-          stock_weight = interp(dRel, [4., 25.], [1., 0.])
-        apply_accel = apply_accel * (1. - stock_weight) + stock_accel * stock_weight
-
-    return apply_accel, dRel
-
   def get_accel(self, CS, sm, accel):
 
-    gas_factor = clip(self.gas_factor, 0.7, 1.3)
-    brake_factor = clip(self.brake_factor, 0.7, 1.3)
+    gas_factor = ntune_scc_get("sccGasFactor")
+    brake_factor = ntune_scc_get("sccBrakeFactor")
 
     lead = self.get_lead(sm)
     if lead is not None:
-      wd = interp(lead.dRel, [4., 15.], [1.2, 1.0])
-      brake_factor *= interp(CS.out.vEgo, [0., 20.], [1., wd])
+      if not lead.radar:
+        brake_factor *= 0.95
 
     if accel > 0:
       accel *= gas_factor
@@ -370,6 +352,18 @@ class SccSmoother:
       accel *= brake_factor
 
     return accel
+
+  def get_stock_cam_accel(self, apply_accel, stock_accel, scc11):
+    stock_cam = scc11["Navi_SCC_Camera_Act"] == 2 and scc11["Navi_SCC_Camera_Status"] == 2
+    if stock_cam:
+      self.stock_weight += DT_CTRL / 3.
+    else:
+      self.stock_weight -= DT_CTRL / 3.
+
+    self.stock_weight = clip(self.stock_weight, 0., 1.)
+
+    accel = stock_accel * self.stock_weight + apply_accel * (1. - self.stock_weight)
+    return min(accel, apply_accel), stock_cam
 
   @staticmethod
   def update_cruise_buttons(controls, CS, longcontrol):  # called by controlds's state_transition

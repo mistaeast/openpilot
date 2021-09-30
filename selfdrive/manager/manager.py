@@ -13,7 +13,7 @@ from common.basedir import BASEDIR
 from common.params import Params, ParamKeyType
 from common.text_window import TextWindow
 from selfdrive.boardd.set_time import set_time
-from selfdrive.hardware import HARDWARE, PC
+from selfdrive.hardware import HARDWARE, PC, EON
 from selfdrive.manager.helpers import unblock_stdout
 from selfdrive.manager.process import ensure_running, launcher
 from selfdrive.manager.process_config import managed_processes
@@ -35,23 +35,24 @@ def manager_init():
   params.clear_all(ParamKeyType.CLEAR_ON_MANAGER_START)
 
   default_params = [
-    ("CompletedTrainingVersion", "0"),
-    ("HasAcceptedTerms", "0"),
+
     ("OpenpilotEnabledToggle", "1"),
-    ("IsMetric", "1"),
+    ("CommunityFeaturesToggle", "1"),
+    ("IsMetric", "0"),
 
     # HKG
     ("UseClusterSpeed", "1"),
     ("LongControlEnabled", "0"),
     ("MadModeEnabled", "1"),
+    ("SmartMDPS", "0"),
     ("IsLdwsCar", "0"),
-    ("LaneChangeEnabled", "0"),
-    ("AutoLaneChangeEnabled", "0"),
+    ("LaneChangeEnabled", "1"),
+    ("AutoLaneChangeEnabled", "1"),
 
-    ("SccSmootherSlowOnCurves", "0"),
-    ("SccSmootherSyncGasPressed", "0"),
+    ("SccSmootherSlowOnCurves", "1"),
+    ("SccSmootherSyncGasPressed", "1"),
+    ("StockNaviDecelEnabled", "1"),
     ("ShowDebugUI", "0"),
-    ("FuseWithStockScc", "1"),
     ("CustomLeadMark", "0")
   ]
   if not PC:
@@ -128,8 +129,10 @@ def manager_thread():
 
   Process(name="shutdownd", target=launcher, args=("selfdrive.shutdownd",)).start()
   Process(name="road_speed_limiter", target=launcher, args=("selfdrive.road_speed_limiter",)).start()
-  system("am startservice com.neokii.optool/.MainService")
-  system("am startservice com.neokii.openpilot/.MainService")
+
+  if EON:
+    system("am startservice com.neokii.optool/.MainService")
+    system("am startservice com.neokii.openpilot/.MainService")
 
   cloudlog.info("manager start")
   cloudlog.info({"environ": os.environ})

@@ -12,11 +12,11 @@ from selfdrive.config import Conversions as CV
 CRUISE_GAP_BP = [1., 2., 3., 4.]
 CRUISE_GAP_V = [1.3, 1.6, 2., 2.5]
 
-AUTO_TR_BP = [20.*CV.KPH_TO_MS, 80.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
-AUTO_TR_V = [1.3, 1.6, 2.3]
+AUTO_TR_BP = [10.*CV.KPH_TO_MS, 70.*CV.KPH_TO_MS, 130.*CV.KPH_TO_MS]
+AUTO_TR_V = [1.4, 1.6, 1.8]
 
 AUTO_TR_ENABLED = True
-AUTO_TR_CRUISE_GAP = 2
+AUTO_TR_CRUISE_GAP = 1
 
 MPC_T = list(np.arange(0,1.,.2)) + list(np.arange(1.,10.6,.6))
 
@@ -79,6 +79,9 @@ class LeadMpc():
       v_lead = max(0.0, lead.vLead)
       a_lead = lead.aLeadK
 
+      if not lead.radar:
+        x_lead = max(0., x_lead - 1.)
+
       if (v_lead < 0.1 or -a_lead / 2.0 > v_lead):
         v_lead = 0.0
         a_lead = 0.0
@@ -112,7 +115,7 @@ class LeadMpc():
     # Reset if NaN or goes through lead car
     crashing = any(lead - ego < -50 for (lead, ego) in zip(self.mpc_solution[0].x_l, self.mpc_solution[0].x_ego))
     nans = any(math.isnan(x) for x in self.mpc_solution[0].v_ego)
-    backwards = min(self.mpc_solution[0].v_ego) < -0.01
+    backwards = min(self.mpc_solution[0].v_ego) < -0.15
 
     if ((backwards or crashing) and self.prev_lead_status) or nans:
       if t > self.last_cloudlog_t + 5.0:
